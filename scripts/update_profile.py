@@ -4,55 +4,102 @@ import requests
 
 USERNAME = "harshad1234u"
 
-TOKEN = os.environ.get("GITHUB_TOKEN")
+TOKEN = os.environ["GITHUB_TOKEN"]
 
-headers = {
+HEADERS = {
     "Accept": "application/vnd.github+json",
     "Authorization": f"Bearer {TOKEN}",
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
 
-def github_api(url):
-    response = requests.get(url, headers=headers, timeout=30)
+def get(url, params=None):
+    response = requests.get(
+        url,
+        headers=HEADERS,
+        params=params,
+        timeout=30,
+    )
     response.raise_for_status()
     return response.json()
 
 
 # ---------------------------------------------------------
-# Get profile information
+# GitHub profile
 # ---------------------------------------------------------
 
-user = github_api(
-    f"https://api.github.com/users/{USERNAME}"
-)
+user = get(f"https://api.github.com/users/{USERNAME}")
 
 followers = user["followers"]
-public_repos = user["public_repos"]
+following = user["following"]
+repos = user["public_repos"]
 
 
 # ---------------------------------------------------------
-# Get repositories
+# Repositories
 # ---------------------------------------------------------
 
-repos = github_api(
-    f"https://api.github.com/users/{USERNAME}/repos?per_page=100"
+repositories = get(
+    f"https://api.github.com/users/{USERNAME}/repos",
+    {
+        "per_page": 100,
+        "type": "owner",
+    },
 )
 
 stars = sum(
     repo["stargazers_count"]
-    for repo in repos
+    for repo in repositories
+)
+
+forks = sum(
+    repo["forks_count"]
+    for repo in repositories
 )
 
 
 # ---------------------------------------------------------
-# Values that will be inserted into the SVG
+# Pull requests
 # ---------------------------------------------------------
 
-stats = {
-    "REPOS": str(public_repos),
-    "STARS": str(stars),
-    "FOLLOWERS": str(followers),
+prs = get(
+    "https://api.github.com/search/issues",
+    {
+        "q": f"author:{USERNAME} type:pr",
+        "per_page": 1,
+    },
+)
+
+pr_count = prs["total_count"]
+
+
+# ---------------------------------------------------------
+# Issues
+# ---------------------------------------------------------
+
+issues = get(
+    "https://api.github.com/search/issues",
+    {
+        "q": f"author:{USERNAME} type:issue",
+        "per_page": 1,
+    },
+)
+
+issue_count = issues["total_count"]
+
+
+# ---------------------------------------------------------
+# Values used by SVG
+# ---------------------------------------------------------
+
+values = {
+    "REPOS_VALUE": repos,
+    "STARS_VALUE": stars,
+    "FORKS_VALUE": forks,
+    "FOLLOWERS_VALUE": followers,
+    "CONTRIBUTED_VALUE": following,
+    "PRS_VALUE": pr_count,
+    "ISSUES_VALUE": issue_count,
 }
 
 
@@ -62,25 +109,30 @@ stats = {
 
 def update_svg(filename):
 
-    with open(filename, "r", encoding="utf-8") as file:
-        content = file.read()
+    with open(filename, "r", encoding="utf-8") as f:
+        content = f.read()
 
-    for key, value in stats.items():
-
-        pattern = rf'({key}=")[^"]*(")'
-
-        content = re.sub(
-            pattern,
-            rf'\g<1>{value}\g<2>',
-            content
+    for placeholder, value in values.items():
+        content = content.replace(
+            placeholder,
+            str(value)
         )
 
-    with open(filename, "w", encoding="utf-8") as file:
-        file.write(content)
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    print(f"Updated {filename}")
 
 
 update_svg("dark_mode.svg")
 update_svg("light_mode.svg")
 
-print("Profile statistics updated successfully.")
-print(stats)
+print()
+print("GitHub profile updated:")
+print(f"Repositories : {repos}")
+print(f"Stars        : {stars}")
+print(f"Forks        : {forks}")
+print(f"Followers    : {followers}")
+print(f"Following    : {following}")
+print(f"Pull Requests: {pr_count}")
+print(f"Issues       : {issue_count}")
