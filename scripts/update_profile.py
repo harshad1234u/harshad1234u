@@ -50,6 +50,7 @@ def update_svg(filename, values):
 
 # ---------------------------------------------------------
 # Public profile statistics
+# Updated automatically by GitHub Actions.
 # ---------------------------------------------------------
 
 user = get(f"{API}/users/{USERNAME}")
