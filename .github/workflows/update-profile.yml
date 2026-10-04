@@ -1,8 +1,11 @@
 name: Update GitHub Profile
 
 on:
+  push:
+    paths:
+      - "scripts/update_profile.py"
+
   schedule:
-    # Refresh profile statistics every 6 hours.
     - cron: "17 */6 * * *"
 
   workflow_dispatch:
@@ -37,8 +40,7 @@ jobs:
       - name: Update profile statistics
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python scripts/update_profile.py
+        run: python scripts/update_profile.py
 
       - name: Commit updated profile assets
         run: |
