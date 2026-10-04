@@ -2,12 +2,17 @@ name: Update GitHub Profile
 
 on:
   schedule:
-    - cron: "17 0 * * *"
+    # Refresh profile statistics every 6 hours.
+    - cron: "17 */6 * * *"
 
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: profile-stats
+  cancel-in-progress: true
 
 jobs:
   update-profile:
@@ -16,6 +21,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -33,7 +40,7 @@ jobs:
         run: |
           python scripts/update_profile.py
 
-      - name: Commit changes
+      - name: Commit updated profile assets
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -41,8 +48,9 @@ jobs:
           git add dark_mode.svg light_mode.svg
 
           if git diff --cached --quiet; then
-            echo "No changes."
-          else
-            git commit -m "chore: update GitHub profile stats"
-            git push
+            echo "No profile changes to commit."
+            exit 0
           fi
+
+          git commit -m "chore: update GitHub profile stats"
+          git push
