@@ -41,36 +41,36 @@ def graphql(query, variables):
 
 def update_svg(filename, values):
     """
-    Update the value tspan on the line containing each labelled statistic.
+    Update the value <tspan> immediately following each statistic label.
 
-    This intentionally does not use one-time placeholders. The SVGs already
-    contain rendered values, so matching by label makes the operation
-    idempotent and allows every scheduled run to refresh the current value.
+    Several statistics share one SVG <text> line (for example Repos | Stars).
+    Matching the whole line is therefore incorrect; we must locate the label
+    and replace only its following value tspan.
     """
     path = ROOT / filename
-    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    content = path.read_text(encoding="utf-8")
 
     for label, value in values.items():
-        marker = f". {label}: </tspan>"
-        line_index = next(
-            (i for i, line in enumerate(lines) if marker in line),
-            None,
+        # The label is followed by a padding tspan and then the value tspan.
+        pattern = (
+            rf'(<tspan[^>]*>\\. {re.escape(label)}: </tspan>'
+            rf'<tspan[^>]*>[^<]*</tspan>'
+            rf'<tspan[^>]*>)[^<]*(</tspan>)'
         )
-        if line_index is None:
-            raise RuntimeError(f"Could not find SVG statistic: {label}")
 
-        line = lines[line_index]
-        matches = list(re.finditer(r"<tspan[^>]*>([^<]*)</tspan>", line))
-        if not matches:
-            raise RuntimeError(f"Could not find SVG value field: {label}")
+        updated, count = re.subn(
+            pattern,
+            lambda match: match.group(1) + escape(str(value)) + match.group(2),
+            content,
+            count=1,
+        )
 
-        # The final tspan on each statistics line is the displayed value.
-        value_match = matches[-1]
-        value_text = escape(str(value))
-        start, end = value_match.span(1)
-        lines[line_index] = line[:start] + value_text + line[end:]
+        if count != 1:
+            raise RuntimeError(f"Could not update SVG statistic: {label}")
 
-    path.write_text("".join(lines), encoding="utf-8")
+        content = updated
+
+    path.write_text(content, encoding="utf-8")
     print(f"Updated {filename}")
 
 
