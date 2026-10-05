@@ -55,4 +55,12 @@ jobs:
           fi
 
           git commit -m "chore: update GitHub profile stats"
-          git push
+
+          # The profile repo can receive another commit while the scheduled
+          # job is calculating stats. Rebase the generated commit onto the
+          # current main branch before pushing instead of failing on a
+          # non-fast-forward race.
+          git fetch origin main
+          git rebase origin/main
+
+          git push origin HEAD:main
