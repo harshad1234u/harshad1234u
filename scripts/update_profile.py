@@ -41,34 +41,46 @@ def graphql(query, variables):
 
 def update_svg(filename, values):
     """
-    Update the value <tspan> immediately following each statistic label.
+    Update the value tspan immediately following each statistic label.
 
-    Several statistics share one SVG <text> line (for example Repos | Stars),
-    so the updater must target the value belonging to the requested label,
-    rather than the final tspan on the whole line.
+    Uses deterministic string parsing rather than a whole-line regex because
+    several statistics share one SVG <text> element.
     """
     path = ROOT / filename
     content = path.read_text(encoding="utf-8")
 
     for label, value in values.items():
-        pattern = (
-            r'(<tspan[^>]*>\\. '
-            + re.escape(label)
-            + r': </tspan><tspan[^>]*>[^<]*</tspan><tspan[^>]*>)'
-            + r'[^<]*(</tspan>)'
+        marker = f". {label}: </tspan>"
+        label_start = content.find(marker)
+
+        if label_start == -1:
+            raise RuntimeError(f"Could not find SVG statistic: {label}")
+
+        # The label is followed by a padding tspan and then the value tspan.
+        padding_start = label_start + len(marker)
+        padding_open = content.find("<tspan", padding_start)
+        if padding_open == -1:
+            raise RuntimeError(f"Could not find SVG padding field: {label}")
+
+        padding_close = content.find("</tspan>", padding_open)
+        if padding_close == -1:
+            raise RuntimeError(f"Could not close SVG padding field: {label}")
+
+        value_open = content.find("<tspan", padding_close + len("</tspan>"))
+        if value_open == -1:
+            raise RuntimeError(f"Could not find SVG value field: {label}")
+
+        value_content_start = content.find(">", value_open) + 1
+        value_close = content.find("</tspan>", value_content_start)
+
+        if value_content_start <= 0 or value_close == -1:
+            raise RuntimeError(f"Could not parse SVG value field: {label}")
+
+        content = (
+            content[:value_content_start]
+            + escape(str(value))
+            + content[value_close:]
         )
-
-        updated, count = re.subn(
-            pattern,
-            lambda match: match.group(1) + escape(str(value)) + match.group(2),
-            content,
-            count=1,
-        )
-
-        if count != 1:
-            raise RuntimeError(f"Could not update SVG statistic: {label}")
-
-        content = updated
 
     path.write_text(content, encoding="utf-8")
     print(f"Updated {filename}")
