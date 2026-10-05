@@ -43,19 +43,19 @@ def update_svg(filename, values):
     """
     Update the value <tspan> immediately following each statistic label.
 
-    Several statistics share one SVG <text> line (for example Repos | Stars).
-    Matching the whole line is therefore incorrect; we must locate the label
-    and replace only its following value tspan.
+    Several statistics share one SVG <text> line (for example Repos | Stars),
+    so the updater must target the value belonging to the requested label,
+    rather than the final tspan on the whole line.
     """
     path = ROOT / filename
     content = path.read_text(encoding="utf-8")
 
     for label, value in values.items():
-        # The label is followed by a padding tspan and then the value tspan.
         pattern = (
-            rf'(<tspan[^>]*>\\. {re.escape(label)}: </tspan>'
-            rf'<tspan[^>]*>[^<]*</tspan>'
-            rf'<tspan[^>]*>)[^<]*(</tspan>)'
+            r'(<tspan[^>]*>\\. '
+            + re.escape(label)
+            + r': </tspan><tspan[^>]*>[^<]*</tspan><tspan[^>]*>)'
+            + r'[^<]*(</tspan>)'
         )
 
         updated, count = re.subn(
