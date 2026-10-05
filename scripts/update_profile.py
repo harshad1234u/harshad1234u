@@ -86,6 +86,40 @@ def update_svg(filename, values):
     print(f"Updated {filename}")
 
 
+def update_readme_cache_buster():
+    """
+    Change the SVG query-string version on every successful stats refresh.
+    GitHub can cache rendered README images, so a new URL forces the profile
+    README to fetch the latest SVG instead of showing an older cached image.
+    """
+    path = ROOT / "ReadMe.md"
+    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    version = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+
+    replacements = {
+        'srcset="dark_mode.svg': f'srcset="dark_mode.svg?v={version}',
+        'srcset="light_mode.svg': f'srcset="light_mode.svg?v={version}',
+        'src="dark_mode.svg': f'src="dark_mode.svg?v={version}',
+    }
+
+    found = {key: False for key in replacements}
+
+    for i, line in enumerate(lines):
+        for old_prefix, new_prefix in replacements.items():
+            if old_prefix in line:
+                start = line.index(old_prefix)
+                quote_end = line.index('"', start + len(old_prefix))
+                lines[i] = line[:start] + new_prefix + line[quote_end:]
+                found[old_prefix] = True
+
+    if not all(found.values()):
+        missing = [key for key, value in found.items() if not value]
+        raise RuntimeError(f"Could not update README SVG cache-buster: {missing}")
+
+    path.write_text("".join(lines), encoding="utf-8")
+    print(f"README SVG cache version: {version}")
+
+
 # ---------------------------------------------------------
 # Public profile statistics
 # Updated automatically by GitHub Actions.\n# Profile stats are refreshed safely on every scheduled run.
@@ -214,6 +248,7 @@ values = {
 
 update_svg("dark_mode.svg", values)
 update_svg("light_mode.svg", values)
+update_readme_cache_buster()
 
 print()
 print("GitHub profile updated successfully")
