@@ -122,7 +122,7 @@ def update_readme_cache_buster():
 
 # ---------------------------------------------------------
 # Public profile statistics
-# Updated automatically by GitHub Actions.\n# Profile stats are refreshed safely on every scheduled run.
+# Updated automatically by GitHub Actions.\n# Profile stats are refreshed safely on every scheduled run.\n# README SVG URLs are cache-busted after each refresh.
 # ---------------------------------------------------------
 
 user = get(f"{API}/users/{USERNAME}")
