@@ -52,7 +52,7 @@ def update_svg(filename, values):
 
     for label, value in values.items():
         pattern = (
-            r'(<tspan[^>]*>\\. '
+            r'(<tspan[^>]*>\. '
             + re.escape(label)
             + r': </tspan><tspan[^>]*>[^<]*</tspan><tspan[^>]*>)'
             + r'[^<]*(</tspan>)'
