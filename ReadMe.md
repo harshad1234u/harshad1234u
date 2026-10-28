@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="dark_mode.svg?v=20261028130113" />
-    <source media="(prefers-color-scheme: light)" srcset="light_mode.svg?v=20261028130113" />
-    <img alt="harshad1234u's GitHub profile" src="dark_mode.svg?v=20261028130113" />
+    <source media="(prefers-color-scheme: dark)" srcset="dark_mode.svg?v=20261028223839" />
+    <source media="(prefers-color-scheme: light)" srcset="light_mode.svg?v=20261028223839" />
+    <img alt="harshad1234u's GitHub profile" src="dark_mode.svg?v=20261028223839" />
   </picture>
 </p>
 
